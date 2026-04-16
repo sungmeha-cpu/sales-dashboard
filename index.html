@@ -131,7 +131,8 @@ tr:hover td{background:#f9fafb}
 <div class="header">
   <h1>FOODCARE / CLE <span>상품매출 대시보드</span></h1>
   <div class="header-right">
-    <select class="select-sm" id="monthSelector" onchange="changeMonth(this.value)" style="color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);font-weight:600">
+    <select class="select-sm" id="monthSelector" onchange="changeMonth(this.value)" style="color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);font-weight:600;-webkit-appearance:none;appearance:none;padding-right:24px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22white%22><path d=%22M7 10l5 5 5-5z%22/></svg>');background-repeat:no-repeat;background-position:right 8px center">
+      <style>#monthSelector option{color:#111827;background:#fff}</style>
       <option value="all">전체 기간</option>
     </select>
     <button class="btn btn-ghost" onclick="exportCSV()">CSV 다운로드</button>
