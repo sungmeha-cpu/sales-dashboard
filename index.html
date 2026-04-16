@@ -34,6 +34,8 @@ body{font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystem
 .btn-white:hover{background:#f0fdf4}
 .btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
 .btn-ghost:hover{background:rgba(255,255,255,.22)}
+.header-select{padding:7px 12px;border-radius:4px;font-size:12px;font-weight:700;font-family:inherit;outline:none;cursor:pointer;color:#111827;background:#fff;border:1px solid rgba(255,255,255,.3)}
+.header-select:focus{border-color:#fff}
 
 /* Nav - horizontal text tabs */
 .nav{display:flex;gap:0;background:transparent;padding:0 24px;border-bottom:1px solid var(--border);margin:0}
@@ -131,8 +133,7 @@ tr:hover td{background:#f9fafb}
 <div class="header">
   <h1>FOODCARE / CLE <span>상품매출 대시보드</span></h1>
   <div class="header-right">
-    <select class="select-sm" id="monthSelector" onchange="changeMonth(this.value)" style="color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);font-weight:600;-webkit-appearance:none;appearance:none;padding-right:24px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22white%22><path d=%22M7 10l5 5 5-5z%22/></svg>');background-repeat:no-repeat;background-position:right 8px center">
-      <style>#monthSelector option{color:#111827;background:#fff}</style>
+    <select class="header-select" id="monthSelector" onchange="changeMonth(this.value)">
       <option value="all">전체 기간</option>
     </select>
     <button class="btn btn-ghost" onclick="exportCSV()">CSV 다운로드</button>
