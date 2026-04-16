@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>푸드케어 클레 | 상품매출 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+:root {
+  --primary: #16a34a; --primary-light: #22c55e; --primary-bg: #f0fdf4;
+  --success: #15803d; --success-bg: #dcfce7;
+  --warning: #f59e0b; --warning-bg: #fef3c7;
+  --danger: #ef4444; --danger-bg: #fee2e2;
+  --purple: #7c3aed; --purple-bg: #ede9fe;
+  --bg: #ffffff; --card: #ffffff; --text: #111827; --muted: #6b7280; --border: #e5e7eb;
+  --shadow: 0 1px 2px rgba(0,0,0,0.05); --shadow-md: 0 4px 6px rgba(0,0,0,0.06);
+  --radius: 8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-feature-settings:'tnum'}
+
+/* Header - compact flat bar */
+.header{background:#16a34a;color:#fff;padding:0 28px;height:48px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.header h1{font-size:15px;font-weight:800;letter-spacing:-.3px;text-transform:uppercase}
+.header h1 span{font-weight:400;opacity:.75;margin-left:8px;font-size:13px;text-transform:none}
+.header .sub{display:none}
+.header-right{display:flex;gap:8px;align-items:center}
+.badge-header{background:rgba(255,255,255,.15);padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.3px}
+.btn{padding:6px 14px;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;letter-spacing:.2px}
+.btn-white{background:#fff;color:#16a34a}
+.btn-white:hover{background:#f0fdf4}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.btn-ghost:hover{background:rgba(255,255,255,.22)}
+
+/* Nav - horizontal text tabs */
+.nav{display:flex;gap:0;background:transparent;padding:0 24px;border-bottom:1px solid var(--border);margin:0}
+.nav-btn{flex:none;padding:14px 20px;text-align:center;border:none;background:transparent;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;border-radius:0}
+.nav-btn.active{color:#16a34a;border-bottom-color:#16a34a;background:transparent;box-shadow:none;font-weight:700}
+.nav-btn:hover:not(.active){color:var(--text);background:transparent}
+
+.container{max-width:1440px;margin:0 auto;padding:24px 28px}
+.panel{display:none}.panel.active{display:block}
+
+/* Section title with green left bar */
+.sec-title{font-size:16px;font-weight:800;margin-bottom:16px;padding-left:12px;border-left:3px solid #16a34a;display:flex;align-items:center;gap:10px;letter-spacing:-.3px}
+.sec-title .tag{font-size:10px;padding:3px 10px;border-radius:4px;background:#f3f4f6;color:var(--muted);font-weight:600;letter-spacing:0}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border);transition:box-shadow .2s;border-top:none}
+.kpi:hover{box-shadow:var(--shadow-md)}
+.kpi.c1,.kpi.c2,.kpi.c3,.kpi.c4,.kpi.c5{border-top:none}
+.kpi-label{font-size:12px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0;margin-bottom:4px}
+.kpi-val{font-size:32px;font-weight:900;margin:2px 0 6px;letter-spacing:-1.5px;line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--muted);font-weight:400}
+.kpi-change{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700}
+.kpi-change.up{background:transparent;color:#16a34a}
+.kpi-change.down{background:transparent;color:#ef4444}
+
+/* Cards & Charts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.card{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border)}
+.card.full{grid-column:1/-1}
+.card-title{font-size:14px;font-weight:800;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;letter-spacing:-.2px}
+.card-title .tag{font-size:10px;padding:3px 10px;border-radius:4px;background:#f3f4f6;color:var(--muted);font-weight:600}
+.chart-box{position:relative;height:280px}
+.chart-box.sm{height:220px}
+.chart-box.lg{height:350px}
+.chart-box.xl{height:420px}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;max-height:520px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f9fafb;padding:10px 12px;text-align:left;font-weight:600;color:var(--muted);font-size:11px;position:sticky;top:0;z-index:1;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;letter-spacing:.2px}
+th:hover{color:var(--text)}
+th.asc::after{content:' ▲';font-size:9px;color:#16a34a}
+th.desc::after{content:' ▼';font-size:9px;color:#16a34a}
+td{padding:9px 12px;border-bottom:1px solid #f3f4f6}
+tr:hover td{background:#f9fafb}
+.r{text-align:right}.c{text-align:center}
+.mono{font-family:'Pretendard',monospace;font-size:11px;font-feature-settings:'tnum'}
+
+/* Badges */
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:600}
+.type-직영점{background:#dcfce7;color:#14532d}
+.type-외부몰{background:#dbeafe;color:#1e40af}
+.type-자사몰{background:#ede9fe;color:#5b21b6}
+
+/* Filters */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:6px 14px;border-radius:4px;border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;background:#fff;transition:all .15s}
+.chip.active{background:#16a34a;color:#fff;border-color:#16a34a}
+.chip:hover:not(.active){border-color:#16a34a;color:#16a34a}
+.search-input{padding:8px 14px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:240px;outline:none;font-family:inherit}
+.search-input:focus{border-color:#16a34a;box-shadow:0 0 0 2px rgba(22,163,74,0.1)}
+.select-sm{padding:7px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;background:#fff;font-family:inherit}
+
+/* Sparkline bars */
+.spark-bar{display:flex;gap:2px;align-items:end;height:30px}
+.spark-bar div{flex:1;background:var(--primary);border-radius:2px;min-width:3px;transition:height .3s}
+
+/* Scroll indicator */
+.scroll-hint{text-align:center;font-size:11px;color:var(--muted);padding:4px}
+
+/* Upload */
+.drop-zone{border:2px dashed #d1d5db;border-radius:var(--radius);padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa}
+.drop-zone:hover,.drop-zone.over{border-color:#16a34a;background:#f0fdf4}
+.drop-icon{font-size:36px;margin-bottom:10px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:#111827;color:#fff;padding:12px 20px;border-radius:6px;font-size:12px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.15);transform:translateY(80px);opacity:0;transition:all .3s;z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* Responsive */
+@media(max-width:1024px){.kpi-row{grid-template-columns:repeat(3,1fr)}.grid-2,.grid-3{grid-template-columns:1fr}}
+@media(max-width:640px){.kpi-row{grid-template-columns:1fr 1fr}.header{flex-direction:column;gap:10px;text-align:center}.container{padding:12px}}
+@media print{.header{position:static}.nav,.btn,.search-input,.filters,.drop-zone{display:none!important}.panel{display:block!important}}
+
+/* Trend indicator */
+.trend-up{color:#16a34a}
+.trend-down{color:var(--danger)}
+.trend-flat{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>FOODCARE / CLE <span>상품매출 대시보드</span></h1>
+  <div class="header-right">
+    <select class="select-sm" id="monthSelector" onchange="changeMonth(this.value)" style="color:#fff;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.25);font-weight:600">
+      <option value="all">전체 기간</option>
+    </select>
+    <button class="btn btn-ghost" onclick="exportCSV()">CSV 다운로드</button>
+    <button class="btn btn-white" onclick="document.getElementById('fileUp').click()">데이터 업로드</button>
+    <input type="file" id="fileUp" accept=".xlsx,.xls" style="display:none" onchange="handleUpload(event)">
+    <span class="badge-header" id="dataBadge">업데이트: 2026-04-16</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="go('overview')">종합 현황</button>
+  <button class="nav-btn" onclick="go('monthly')">월별 추이</button>
+  <button class="nav-btn" onclick="go('product')">상품 분석</button>
+  <button class="nav-btn" onclick="go('channel')">채널 분석</button>
+  <button class="nav-btn" onclick="go('manage')">데이터 관리</button>
+</div>
+
+<div class="container">
+
+<!-- ===== 종합 현황 ===== -->
+<div class="panel active" id="p-overview">
+  <div class="sec-title">핵심 경영 지표 <span class="tag" id="dataBadgeInline">2025~2026 상품매출</span></div>
+  <div class="kpi-row" id="kpiCards"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">월별 매출 추이 <span class="tag">매출액 기준</span></div>
+      <div class="chart-box"><canvas id="cMonthTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">월별 수량 추이 <span class="tag">출고량 기준</span></div>
+      <div class="chart-box"><canvas id="cMonthQty"></canvas></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">카테고리별 매출 비중 <span class="tag">전체 기간</span></div>
+      <div class="chart-box"><canvas id="cCatPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">거래처 유형별 매출 <span class="tag">직영/외부/자사몰</span></div>
+      <div class="chart-box"><canvas id="cTypePie"></canvas></div>
+    </div>
+  </div>
+  <div class="card full" style="margin-bottom:14px">
+    <div class="card-title">일별 매출 추이 <span class="tag">Daily Trend</span></div>
+    <div class="chart-box lg"><canvas id="cDailyTrend"></canvas></div>
+  </div>
+  <div class="card full">
+    <div class="card-title">Top 15 매출 상품 <span class="tag">전체 기간 누적</span></div>
+    <div class="chart-box lg"><canvas id="cTopProducts"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== 월별 추이 ===== -->
+<div class="panel" id="p-monthly">
+  <div class="sec-title">월별 매출 추이 <span class="tag">결제금액 기준</span></div>
+  <div class="kpi-row" id="kpiMonthly"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">월별 매출 & 원가 비교 <span class="tag">수익성</span></div>
+      <div class="chart-box"><canvas id="cMonthSalesCost"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">월별 카테고리 매출 구성 <span class="tag">스택 차트</span></div>
+      <div class="chart-box"><canvas id="cMonthCatStack"></canvas></div>
+    </div>
+  </div>
+  <div class="card full" style="margin-bottom:14px">
+    <div class="card-title">월별 거래처 매출 비교 (Top 10) <span class="tag">채널 변동</span></div>
+    <div class="chart-box xl"><canvas id="cMonthChannelComp"></canvas></div>
+  </div>
+  <div class="card full">
+    <div class="card-title">월별 상품 매출 변동 (MoM) <span class="tag">성장/하락 상품</span></div>
+    <div class="tbl-wrap" id="momTableWrap"></div>
+  </div>
+</div>
+
+<!-- ===== 상품 분석 ===== -->
+<div class="panel" id="p-product">
+  <div class="sec-title">상품별 매출 분석 <span class="tag">품목 단위</span></div>
+  <div class="filters" id="prodFilters"></div>
+  <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+    <input type="text" class="search-input" id="prodSearch" placeholder="상품명 또는 코드로 검색..." oninput="renderProdTable()">
+    <select class="select-sm" id="prodSort" onchange="renderProdTable()">
+      <option value="sales-desc">매출액 높은순</option>
+      <option value="sales-asc">매출액 낮은순</option>
+      <option value="qty-desc">수량 많은순</option>
+      <option value="margin-asc">원가율 높은순 (위험)</option>
+      <option value="growth-desc">성장률 높은순</option>
+      <option value="growth-asc">성장률 낮은순</option>
+    </select>
+  </div>
+  <div class="card full" style="margin-bottom:14px">
+    <div class="card-title">상품별 매출 현황 <span class="tag" id="prodCount">0개</span></div>
+    <div class="tbl-wrap" id="prodTableWrap"></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">상품별 매출 vs 원가율 <span class="tag">Scatter</span></div>
+      <div class="chart-box lg"><canvas id="cProdScatter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">상품 원가율 분포 <span class="tag">Histogram</span></div>
+      <div class="chart-box lg"><canvas id="cCostHist"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 채널 분석 ===== -->
+<div class="panel" id="p-channel">
+  <div class="sec-title">채널별 매출 분석 <span class="tag">거래처 단위</span></div>
+  <div class="filters" id="chFilters">
+    <button class="chip active" data-f="all">전체</button>
+    <button class="chip" data-f="직영점">직영점</button>
+    <button class="chip" data-f="외부몰">외부몰</button>
+    <button class="chip" data-f="자사몰">자사몰</button>
+  </div>
+  <div class="card full" style="margin-bottom:14px">
+    <div class="card-title">채널별 월별 매출 추이 <span class="tag">Grouped Bar</span></div>
+    <div class="chart-box xl"><canvas id="cChBar"></canvas></div>
+  </div>
+  <div class="card full" style="margin-bottom:14px">
+    <div class="card-title">채널별 상세 현황</div>
+    <div class="tbl-wrap" id="chTableWrap"></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">채널 점유율 (매출 기준) <span class="tag">Pie</span></div>
+      <div class="chart-box lg"><canvas id="cChPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">채널별 MoM 성장률 <span class="tag">변동률</span></div>
+      <div class="chart-box lg"><canvas id="cChGrowth"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 데이터 관리 ===== -->
+<div class="panel" id="p-manage">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">데이터 업로드</div>
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">📊</div>
+      <div style="font-size:13px;color:var(--muted)"><strong style="color:var(--primary)">클릭</strong> 또는 파일을 드래그하여 업로드<br><small>26년 상품매출.xlsx 형식의 파일 지원</small></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">현재 데이터 요약</div>
+      <div id="dataSum" style="font-size:12px;color:var(--muted)"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">지원 파일 형식</div>
+      <div style="font-size:12px;color:var(--muted)">
+        <p><b>시트 구조:</b></p>
+        <ul style="margin:8px 0 0 16px">
+          <li><b>상품매출RAW</b> - 일별 거래 건별 상세 데이터</li>
+          <li><b>상품매출</b> - 월별 상품 요약</li>
+          <li><b>거래처정보</b> - 거래처 유형 분류</li>
+          <li><b>품목정보</b> - 품목 원가 정보</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="sales_raw.js"></script>
+<script>
+// ===== Global State =====
+const D = SALES_DATA;
+let selectedMonth = 'all';
+let chFilterType = 'all';
+let prodCatFilter = 'all';
+const charts = {};
+const COLORS = ['#16a34a','#22c55e','#4ade80','#166534','#15803d','#86efac','#f59e0b','#7c3aed','#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6','#6366f1','#e11d48','#a855f7'];
+
+// ===== Helpers =====
+const fmt = n => n == null ? '-' : Number(n).toLocaleString('ko-KR');
+const fmtM = n => {
+  if (!n) return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e8) return (n/1e8).toFixed(1) + '억';
+  if (abs >= 1e4) return (n/1e4).toFixed(0) + '만';
+  return fmt(n);
+};
+const pct = (a,b) => b ? ((a/b)*100).toFixed(1)+'%' : '-';
+const mom = (cur,prev) => prev ? (((cur-prev)/prev)*100).toFixed(1) : null;
+function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+
+const activeMonths = D.months.filter(m => D.monthlyTotals[m]);
+const activeLabels = activeMonths.map(m => D.monthLabels[D.months.indexOf(m)]);
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate month selector
+  const sel = document.getElementById('monthSelector');
+  activeMonths.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = activeLabels[i];
+    sel.appendChild(opt);
+  });
+  document.getElementById('dataBadge').textContent = `업데이트: ${new Date().toISOString().slice(0,10)}`;
+  document.getElementById('dataBadgeInline').textContent = `2026 ${activeLabels.join(' · ')} 상품매출`;
+
+  renderAll();
+  setupDropZone();
+  setupChFilters();
+});
+
+function renderAll() {
+  renderKPIs();
+  renderMonthTrend();
+  renderMonthQty();
+  renderCatPie();
+  renderTypePie();
+  renderDailyTrend();
+  renderTopProducts();
+  renderMonthlyTab();
+  renderProductTab();
+  renderChannelTab();
+  renderDataSummary();
+}
+
+// ===== Navigation =====
+function go(tab) {
+  document.querySelectorAll('.nav-btn').forEach((b,i) => b.classList.toggle('active', ['overview','monthly','product','channel','manage'][i]===tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('p-'+tab).classList.add('active');
+}
+
+function changeMonth(m) { selectedMonth = m; renderAll(); }
+
+// ===== Data access helpers =====
+function getMonthData() {
+  if (selectedMonth === 'all') return D.monthlyTotals;
+  return { [selectedMonth]: D.monthlyTotals[selectedMonth] };
+}
+
+function getSelectedMonths() {
+  return selectedMonth === 'all' ? activeMonths : [selectedMonth];
+}
+function getTotalSales() {
+  return getSelectedMonths().reduce((s,m) => s + (D.monthlyTotals[m]?.sales || 0), 0);
+}
+function getTotalQty() {
+  return getSelectedMonths().reduce((s,m) => s + (D.monthlyTotals[m]?.qty || 0), 0);
+}
+function getTotalCost() {
+  return getSelectedMonths().reduce((s,m) => s + (D.monthlyTotals[m]?.cost || 0), 0);
+}
+
+// ===== KPI Cards =====
+function renderKPIs() {
+  const sm = getSelectedMonths();
+  const periodLabel = selectedMonth === 'all' ? '총' : D.monthLabels[D.months.indexOf(selectedMonth)];
+  const totalSales = getTotalSales();
+  const totalQty = getTotalQty();
+  const totalCost = getTotalCost();
+  const costRate = totalSales ? (totalCost / totalSales * 100) : 0;
+  const txCount = sm.reduce((s,m) => s + (D.monthlyTotals[m]?.count || 0), 0);
+
+  // MoM change (선택 월의 이전 월 대비, 또는 전체일 때 마지막 vs 이전)
+  let momHtml = '';
+  if (selectedMonth !== 'all') {
+    const mIdx = activeMonths.indexOf(selectedMonth);
+    if (mIdx > 0) {
+      const prevSales = D.monthlyTotals[activeMonths[mIdx-1]]?.sales || 0;
+      const momVal = mom(totalSales, prevSales);
+      const prevLabel = D.monthLabels[D.months.indexOf(activeMonths[mIdx-1])];
+      momHtml = `<span class="kpi-change ${Number(momVal)>=0?'up':'down'}">${Number(momVal)>=0?'▲':'▼'} ${Math.abs(momVal)}%</span> vs ${prevLabel}`;
+    }
+  } else if (activeMonths.length >= 2) {
+    const cur = D.monthlyTotals[activeMonths[activeMonths.length-1]]?.sales || 0;
+    const prev = D.monthlyTotals[activeMonths[activeMonths.length-2]]?.sales || 0;
+    const momVal = mom(cur, prev);
+    momHtml = `<span class="kpi-change ${Number(momVal)>=0?'up':'down'}">${Number(momVal)>=0?'▲':'▼'} ${Math.abs(momVal)}% MoM</span>`;
+  }
+
+  document.getElementById('kpiCards').innerHTML = `
+    <div class="kpi c1">
+      <div class="kpi-label">${periodLabel} 매출액</div>
+      <div class="kpi-val">${fmtM(totalSales)}</div>
+      <div class="kpi-sub">${fmt(totalSales)}원 ${momHtml}</div>
+    </div>
+    <div class="kpi c2">
+      <div class="kpi-label">${periodLabel} 판매수량</div>
+      <div class="kpi-val">${fmtM(totalQty)}</div>
+      <div class="kpi-sub">${fmt(totalQty)}개</div>
+    </div>
+    <div class="kpi c3">
+      <div class="kpi-label">${periodLabel} 매출원가</div>
+      <div class="kpi-val">${fmtM(totalCost)}</div>
+      <div class="kpi-sub">${fmt(totalCost)}원</div>
+    </div>
+    <div class="kpi c4">
+      <div class="kpi-label">${periodLabel} 원가율</div>
+      <div class="kpi-val">${costRate.toFixed(1)}%</div>
+      <div class="kpi-sub">매출원가 / 매출액</div>
+    </div>
+    <div class="kpi c5">
+      <div class="kpi-label">${periodLabel} 거래 건수</div>
+      <div class="kpi-val">${fmtM(txCount)}</div>
+      <div class="kpi-sub">${fmt(txCount)}건</div>
+    </div>
+  `;
+}
+
+// ===== Overview Charts =====
+function renderMonthTrend() {
+  destroy('monthTrend');
+  charts.monthTrend = new Chart(document.getElementById('cMonthTrend'), {
+    type: 'bar',
+    data: {
+      labels: activeLabels,
+      datasets: [{
+        label: '매출액',
+        data: activeMonths.map(m => D.monthlyTotals[m]?.sales || 0),
+        backgroundColor: '#16a34a', borderRadius: 6
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${fmtM(ctx.parsed.y)} (${fmt(ctx.parsed.y)}원)`}} },
+      scales: { y:{beginAtZero:true, ticks:{callback:v=>fmtM(v)}}, x:{grid:{display:false}} }
+    }
+  });
+}
+
+function renderMonthQty() {
+  destroy('monthQty');
+  charts.monthQty = new Chart(document.getElementById('cMonthQty'), {
+    type: 'bar',
+    data: {
+      labels: activeLabels,
+      datasets: [{
+        label: '수량',
+        data: activeMonths.map(m => D.monthlyTotals[m]?.qty || 0),
+        backgroundColor: '#22c55e', borderRadius: 6
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${fmt(ctx.parsed.y)}개`}} },
+      scales: { y:{beginAtZero:true, ticks:{callback:v=>fmt(v)}}, x:{grid:{display:false}} }
+    }
+  });
+}
+
+function renderCatPie() {
+  destroy('catPie');
+  const cats = {};
+  getSelectedMonths().forEach(m => {
+    Object.entries(D.monthlyCategory[m] || {}).forEach(([c, v]) => {
+      if (c) cats[c] = (cats[c] || 0) + (v.sales || 0);
+    });
+  });
+  const sorted = Object.entries(cats).filter(([k])=>k).sort((a,b)=>b[1]-a[1]);
+  charts.catPie = new Chart(document.getElementById('cCatPie'), {
+    type: 'doughnut',
+    data: { labels:sorted.map(s=>s[0]), datasets:[{data:sorted.map(s=>s[1]), backgroundColor:COLORS.slice(0,sorted.length), borderWidth:0, cutout:'55%'}] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{position:'right',labels:{font:{size:11},padding:8}}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtM(ctx.parsed)} (${pct(ctx.parsed,sorted.reduce((s,v)=>s+v[1],0))})`}} }
+    }
+  });
+}
+
+function renderTypePie() {
+  destroy('typePie');
+  const types = {};
+  getSelectedMonths().forEach(m => {
+    Object.entries(D.monthlyChannel[m] || {}).forEach(([ch, v]) => {
+      const t = D.customers[ch] || '기타';
+      types[t] = (types[t] || 0) + (v.sales || 0);
+    });
+  });
+  const sorted = Object.entries(types).sort((a,b)=>b[1]-a[1]);
+  const typeColors = {'직영점':'#16a34a','외부몰':'#4ade80','자사몰':'#166534','기타':'#94a3b8'};
+  charts.typePie = new Chart(document.getElementById('cTypePie'), {
+    type: 'doughnut',
+    data: { labels:sorted.map(s=>s[0]), datasets:[{data:sorted.map(s=>s[1]), backgroundColor:sorted.map(s=>typeColors[s[0]]||'#94a3b8'), borderWidth:0, cutout:'55%'}] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{position:'right',labels:{font:{size:11},padding:8}}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtM(ctx.parsed)}`}} }
+    }
+  });
+}
+
+function renderDailyTrend() {
+  destroy('dailyTrend');
+  // 선택 월에 해당하는 일별 데이터만 필터링
+  const monthFilter = selectedMonth === 'all' ? null : selectedMonth.replace('26','2026-').replace('01','01').replace('02','02');
+  const monthPrefix = selectedMonth === 'all' ? null : '2026-' + selectedMonth.substring(2);
+  let entries = Object.entries(D.dailySales).sort((a,b)=>a[0].localeCompare(b[0]));
+  if (monthPrefix) {
+    entries = entries.filter(e => e[0].startsWith(monthPrefix));
+  }
+  const labels = entries.map(e => { const d = e[0].split('-'); return `${d[1]}/${d[2]}`; });
+  const data = entries.map(e => e[1]);
+
+  const bgColors = entries.map(e => {
+    const m = e[0].substring(0,7);
+    return m === '2026-01' ? 'rgba(22,163,74,0.7)' : 'rgba(74,222,128,0.7)';
+  });
+
+  charts.dailyTrend = new Chart(document.getElementById('cDailyTrend'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: bgColors, borderRadius: 2 }] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${fmtM(ctx.parsed.y)} (${fmt(ctx.parsed.y)}원)`}} },
+      scales: { y:{beginAtZero:true, ticks:{callback:v=>fmtM(v)}}, x:{grid:{display:false}, ticks:{maxRotation:45, font:{size:9}, maxTicksLimit:30}} }
+    }
+  });
+}
+
+function renderTopProducts() {
+  destroy('topProd');
+  // Aggregate across selected months
+  const prods = {};
+  getSelectedMonths().forEach(m => {
+    Object.entries(D.monthlyProduct[m] || {}).forEach(([name, v]) => {
+      if (!prods[name]) prods[name] = {sales:0, qty:0, cat: v.category};
+      prods[name].sales += v.sales || 0;
+      prods[name].qty += v.qty || 0;
+    });
+  });
+  const sorted = Object.entries(prods).sort((a,b)=>b[1].sales-a[1].sales).slice(0,15);
+
+  charts.topProd = new Chart(document.getElementById('cTopProducts'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(s=>s[0]),
+      datasets: [{data:sorted.map(s=>s[1].sales), backgroundColor:'#16a34a', borderRadius:4}]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>`매출: ${fmtM(ctx.parsed.x)} | 수량: ${fmt(sorted[ctx.dataIndex][1].qty)}`}} },
+      scales: { x:{beginAtZero:true, ticks:{callback:v=>fmtM(v)}}, y:{grid:{display:false}, ticks:{font:{size:11}}} }
+    }
+  });
+}
+
+// ===== Monthly Tab =====
+function renderMonthlyTab() {
+  renderMonthlyKPIs();
+  renderMonthSalesCost();
+  renderMonthCatStack();
+  renderMonthChannelComp();
+  renderMoMTable();
+}
+
+function renderMonthlyKPIs() {
+  // 특정 월 선택 시 해당 월 단독 KPI 표시
+  if (selectedMonth !== 'all' && D.monthlyTotals[selectedMonth]) {
+    const mD = D.monthlyTotals[selectedMonth];
+    const mLabel = D.monthLabels[D.months.indexOf(selectedMonth)];
+    const mCR = mD.sales ? (mD.cost/mD.sales*100) : 0;
+    const mMargin = mD.sales - mD.cost;
+    const avgPerTx = mD.count ? Math.round(mD.sales / mD.count) : 0;
+
+    // 이전 월 대비 비교 (가능한 경우)
+    const mIdx = activeMonths.indexOf(selectedMonth);
+    let compHtml = '';
+    if (mIdx > 0) {
+      const prevM = activeMonths[mIdx - 1];
+      const pD = D.monthlyTotals[prevM];
+      const prevLabel = D.monthLabels[D.months.indexOf(prevM)];
+      const sMom = mom(mD.sales, pD.sales);
+      const qMom = mom(mD.qty, pD.qty);
+      const pCR = pD.sales ? (pD.cost/pD.sales*100) : 0;
+
+      document.getElementById('kpiMonthly').innerHTML = `
+        <div class="kpi c1"><div class="kpi-label">${mLabel} 매출</div><div class="kpi-val">${fmtM(mD.sales)}</div><div class="kpi-sub"><span class="kpi-change ${Number(sMom)>=0?'up':'down'}">${Number(sMom)>=0?'▲':'▼'} ${Math.abs(sMom)}%</span> vs ${prevLabel}</div></div>
+        <div class="kpi c2"><div class="kpi-label">${mLabel} 수량</div><div class="kpi-val">${fmtM(mD.qty)}</div><div class="kpi-sub"><span class="kpi-change ${Number(qMom)>=0?'up':'down'}">${Number(qMom)>=0?'▲':'▼'} ${Math.abs(qMom)}%</span> vs ${prevLabel}</div></div>
+        <div class="kpi c3"><div class="kpi-label">${mLabel} 원가율</div><div class="kpi-val">${mCR.toFixed(1)}%</div><div class="kpi-sub">${prevLabel} ${pCR.toFixed(1)}%</div></div>
+        <div class="kpi c4"><div class="kpi-label">${mLabel} 마진</div><div class="kpi-val">${fmtM(mMargin)}</div><div class="kpi-sub">${fmt(mMargin)}원</div></div>
+        <div class="kpi c5"><div class="kpi-label">건당 매출</div><div class="kpi-val">${fmt(avgPerTx)}</div><div class="kpi-sub">${fmt(mD.count)}건 기준</div></div>
+      `;
+    } else {
+      // 첫 번째 월 (비교 대상 없음)
+      document.getElementById('kpiMonthly').innerHTML = `
+        <div class="kpi c1"><div class="kpi-label">${mLabel} 매출</div><div class="kpi-val">${fmtM(mD.sales)}</div><div class="kpi-sub">${fmt(mD.sales)}원</div></div>
+        <div class="kpi c2"><div class="kpi-label">${mLabel} 수량</div><div class="kpi-val">${fmtM(mD.qty)}</div><div class="kpi-sub">${fmt(mD.qty)}개</div></div>
+        <div class="kpi c3"><div class="kpi-label">${mLabel} 원가율</div><div class="kpi-val">${mCR.toFixed(1)}%</div><div class="kpi-sub">매출원가 / 매출액</div></div>
+        <div class="kpi c4"><div class="kpi-label">${mLabel} 마진</div><div class="kpi-val">${fmtM(mMargin)}</div><div class="kpi-sub">${fmt(mMargin)}원</div></div>
+        <div class="kpi c5"><div class="kpi-label">건당 매출</div><div class="kpi-val">${fmt(avgPerTx)}</div><div class="kpi-sub">${fmt(mD.count)}건 기준</div></div>
+      `;
+    }
+    return;
+  }
+
+  // 전체 기간 (기존 로직: 마지막 월 vs 이전 월 비교)
+  if (activeMonths.length < 2) { document.getElementById('kpiMonthly').innerHTML = ''; return; }
+  const cur = activeMonths[activeMonths.length-1];
+  const prev = activeMonths[activeMonths.length-2];
+  const cD = D.monthlyTotals[cur], pD = D.monthlyTotals[prev];
+  const sMom = mom(cD.sales, pD.sales);
+  const qMom = mom(cD.qty, pD.qty);
+  const cCR = cD.sales ? (cD.cost/cD.sales*100) : 0;
+  const pCR = pD.sales ? (pD.cost/pD.sales*100) : 0;
+
+  document.getElementById('kpiMonthly').innerHTML = `
+    <div class="kpi c1"><div class="kpi-label">${D.monthLabels[D.months.indexOf(cur)]} 매출</div><div class="kpi-val">${fmtM(cD.sales)}</div><div class="kpi-sub"><span class="kpi-change ${Number(sMom)>=0?'up':'down'}">${Number(sMom)>=0?'▲':'▼'} ${Math.abs(sMom)}%</span> vs ${D.monthLabels[D.months.indexOf(prev)]}</div></div>
+    <div class="kpi c2"><div class="kpi-label">${D.monthLabels[D.months.indexOf(cur)]} 수량</div><div class="kpi-val">${fmtM(cD.qty)}</div><div class="kpi-sub"><span class="kpi-change ${Number(qMom)>=0?'up':'down'}">${Number(qMom)>=0?'▲':'▼'} ${Math.abs(qMom)}%</span> vs ${D.monthLabels[D.months.indexOf(prev)]}</div></div>
+    <div class="kpi c3"><div class="kpi-label">${D.monthLabels[D.months.indexOf(cur)]} 원가율</div><div class="kpi-val">${cCR.toFixed(1)}%</div><div class="kpi-sub">${D.monthLabels[D.months.indexOf(prev)]} ${pCR.toFixed(1)}%</div></div>
+    <div class="kpi c4"><div class="kpi-label">매출 증감액</div><div class="kpi-val">${fmtM(cD.sales - pD.sales)}</div><div class="kpi-sub">${fmt(cD.sales - pD.sales)}원</div></div>
+    <div class="kpi c5"><div class="kpi-label">건당 매출</div><div class="kpi-val">${fmt(Math.round(cD.sales / cD.count))}</div><div class="kpi-sub">원/건</div></div>
+  `;
+}
+
+function renderMonthSalesCost() {
+  destroy('msc');
+  charts.msc = new Chart(document.getElementById('cMonthSalesCost'), {
+    type: 'bar',
+    data: {
+      labels: activeLabels,
+      datasets: [
+        {label:'매출액', data:activeMonths.map(m=>D.monthlyTotals[m]?.sales||0), backgroundColor:'#16a34a', borderRadius:4},
+        {label:'매출원가', data:activeMonths.map(m=>D.monthlyTotals[m]?.cost||0), backgroundColor:'#f59e0b', borderRadius:4},
+        {label:'마진', data:activeMonths.map(m=>(D.monthlyTotals[m]?.sales||0)-(D.monthlyTotals[m]?.cost||0)), type:'line', borderColor:'#14532d', borderWidth:2, pointRadius:5, pointBackgroundColor:'#14532d', fill:false}
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtM(v)}},x:{grid:{display:false}}}
+    }
+  });
+}
+
+function renderMonthCatStack() {
+  destroy('mcs');
+  const allCats = new Set();
+  activeMonths.forEach(m => Object.keys(D.monthlyCategory[m]||{}).forEach(c => { if(c) allCats.add(c); }));
+  const cats = [...allCats];
+
+  charts.mcs = new Chart(document.getElementById('cMonthCatStack'), {
+    type: 'bar',
+    data: {
+      labels: activeLabels,
+      datasets: cats.map((c,i) => ({
+        label: c, data: activeMonths.map(m => (D.monthlyCategory[m]||{})[c]?.sales || 0),
+        backgroundColor: COLORS[i%COLORS.length], borderRadius: 2
+      }))
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:10},usePointStyle:true,pointStyle:'rect'}}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>fmtM(v)}}}
+    }
+  });
+}
+
+function renderMonthChannelComp() {
+  destroy('mcc');
+  // Get top 10 channels by total sales
+  const chTotals = {};
+  activeMonths.forEach(m => {
+    Object.entries(D.monthlyChannel[m]||{}).forEach(([ch,v]) => {
+      chTotals[ch] = (chTotals[ch]||0) + (v.sales||0);
+    });
+  });
+  const topChs = Object.entries(chTotals).sort((a,b)=>b[1]-a[1]).slice(0,10).map(e=>e[0]);
+
+  charts.mcc = new Chart(document.getElementById('cMonthChannelComp'), {
+    type: 'bar',
+    data: {
+      labels: topChs,
+      datasets: activeMonths.map((m,i) => ({
+        label: activeLabels[i],
+        data: topChs.map(ch => (D.monthlyChannel[m]||{})[ch]?.sales || 0),
+        backgroundColor: COLORS[i], borderRadius: 4
+      }))
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtM(v)}},x:{grid:{display:false},ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+let momSortCol = 'diff';
+let momSortDir = 'desc';
+let momList = [];
+
+function buildMoMList() {
+  if (activeMonths.length < 2) return [];
+  const cur = activeMonths[activeMonths.length-1];
+  const prev = activeMonths[activeMonths.length-2];
+
+  const prods = {};
+  Object.entries(D.monthlyProduct[prev]||{}).forEach(([n,v]) => {
+    if(!prods[n]) prods[n] = {name:n, code:v.code, cat:v.category, prevSales:0, curSales:0, prevQty:0, curQty:0};
+    prods[n].prevSales = v.sales||0; prods[n].prevQty = v.qty||0;
+  });
+  Object.entries(D.monthlyProduct[cur]||{}).forEach(([n,v]) => {
+    if(!prods[n]) prods[n] = {name:n, code:v.code, cat:v.category, prevSales:0, curSales:0, prevQty:0, curQty:0};
+    prods[n].curSales = v.sales||0; prods[n].curQty = v.qty||0;
+  });
+
+  const list = Object.values(prods).filter(p=>p.curSales>0||p.prevSales>0);
+  list.forEach(p => {
+    p.growth = p.prevSales ? ((p.curSales-p.prevSales)/p.prevSales*100) : (p.curSales > 0 ? 999 : 0);
+    p.diff = p.curSales - p.prevSales;
+  });
+  return list;
+}
+
+function sortMoM(col) {
+  if (momSortCol === col) { momSortDir = momSortDir === 'desc' ? 'asc' : 'desc'; }
+  else { momSortCol = col; momSortDir = (col === 'name' || col === 'cat') ? 'asc' : 'desc'; }
+  renderMoMTableInner();
+}
+
+function renderMoMTable() {
+  momList = buildMoMList();
+  renderMoMTableInner();
+}
+
+function renderMoMTableInner() {
+  if (activeMonths.length < 2 || !momList.length) { document.getElementById('momTableWrap').innerHTML = '<p style="color:var(--muted);padding:20px">2개월 이상 데이터 필요</p>'; return; }
+
+  const cur = activeMonths[activeMonths.length-1];
+  const prev = activeMonths[activeMonths.length-2];
+  const curLabel = D.monthLabels[D.months.indexOf(cur)];
+  const prevLabel = D.monthLabels[D.months.indexOf(prev)];
+
+  // Sort
+  const sorted = [...momList];
+  sorted.sort((a,b) => {
+    let va, vb;
+    switch(momSortCol) {
+      case 'name': va = a.name; vb = b.name; break;
+      case 'cat': va = a.cat||''; vb = b.cat||''; break;
+      case 'prevSales': va = a.prevSales; vb = b.prevSales; break;
+      case 'curSales': va = a.curSales; vb = b.curSales; break;
+      case 'diff': va = a.diff; vb = b.diff; break;
+      case 'growth': va = a.growth; vb = b.growth; break;
+      case 'prevQty': va = a.prevQty; vb = b.prevQty; break;
+      case 'curQty': va = a.curQty; vb = b.curQty; break;
+      default: va = a.diff; vb = b.diff;
+    }
+    if (typeof va === 'string') { return momSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va); }
+    return momSortDir === 'asc' ? va - vb : vb - va;
+  });
+
+  const cols = [
+    {key:'name', label:'상품명', cls:''},
+    {key:'cat', label:'카테고리', cls:''},
+    {key:'prevSales', label:`${prevLabel} 매출`, cls:'r'},
+    {key:'curSales', label:`${curLabel} 매출`, cls:'r'},
+    {key:'diff', label:'증감액', cls:'r'},
+    {key:'growth', label:'성장률', cls:'r'},
+    {key:'prevQty', label:`${prevLabel} 수량`, cls:'r'},
+    {key:'curQty', label:`${curLabel} 수량`, cls:'r'},
+  ];
+
+  let html = '<table><thead><tr>';
+  cols.forEach(c => {
+    const active = momSortCol === c.key;
+    const dirCls = active ? (momSortDir === 'asc' ? 'asc' : 'desc') : '';
+    html += `<th class="${c.cls} ${dirCls}" onclick="sortMoM('${c.key}')" style="cursor:pointer">${c.label}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  sorted.slice(0,50).forEach(p => {
+    const cls = p.diff > 0 ? 'trend-up' : p.diff < 0 ? 'trend-down' : 'trend-flat';
+    const arrow = p.diff > 0 ? '▲' : p.diff < 0 ? '▼' : '-';
+    html += `<tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td><span class="cat-badge" style="background:#f1f5f9">${p.cat||'-'}</span></td>
+      <td class="r">${fmt(p.prevSales)}</td>
+      <td class="r" style="font-weight:600">${fmt(p.curSales)}</td>
+      <td class="r ${cls}" style="font-weight:600">${arrow} ${fmt(Math.abs(p.diff))}</td>
+      <td class="r ${cls}" style="font-weight:600">${p.growth > 900 ? 'NEW' : (p.growth > 0 ? '+' : '') + p.growth.toFixed(1) + '%'}</td>
+      <td class="r">${fmt(p.prevQty)}</td>
+      <td class="r">${fmt(p.curQty)}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('momTableWrap').innerHTML = html;
+}
+
+// ===== Product Tab =====
+function renderProductTab() {
+  renderProdFilterChips();
+  renderProdTable();
+  renderProdScatter();
+  renderCostHist();
+}
+
+function renderProdFilterChips() {
+  const cats = new Set();
+  D.productMonthly.forEach(p => {
+    const info = D.productInfo[p.code];
+    // Get category from RAW
+    activeMonths.forEach(m => {
+      const mp = D.monthlyProduct[m]?.[p.name];
+      if (mp?.category) cats.add(mp.category);
+    });
+  });
+  let html = '<button class="chip active" data-cat="all" onclick="setProdCat(\'all\')">전체</button>';
+  cats.forEach(c => { if(c) html += `<button class="chip" data-cat="${c}" onclick="setProdCat('${c}')">${c}</button>`; });
+  document.getElementById('prodFilters').innerHTML = html;
+}
+
+function setProdCat(c) {
+  prodCatFilter = c;
+  document.querySelectorAll('#prodFilters .chip').forEach(el => el.classList.toggle('active', el.dataset.cat === c));
+  renderProdTable();
+}
+
+function getProductList() {
+  const search = (document.getElementById('prodSearch')?.value || '').toLowerCase();
+  const sort = document.getElementById('prodSort')?.value || 'sales-desc';
+
+  let list = D.productMonthly.filter(p => p.yearly.sales > 0 || p.yearly.qty > 0);
+
+  // Add category info from RAW
+  list.forEach(p => {
+    p._cat = '';
+    activeMonths.forEach(m => {
+      const mp = D.monthlyProduct[m]?.[p.name];
+      if (mp?.category) p._cat = mp.category;
+    });
+    // Compute growth
+    if (activeMonths.length >= 2) {
+      const cur = p.monthly[activeMonths[activeMonths.length-1]]?.sales || 0;
+      const prev = p.monthly[activeMonths[activeMonths.length-2]]?.sales || 0;
+      p._growth = prev ? ((cur-prev)/prev*100) : (cur > 0 ? 999 : -999);
+    } else {
+      p._growth = 0;
+    }
+  });
+
+  if (prodCatFilter !== 'all') list = list.filter(p => p._cat === prodCatFilter);
+  if (search) list = list.filter(p => p.name.toLowerCase().includes(search) || p.code.toLowerCase().includes(search));
+
+  const [field, dir] = sort.split('-');
+  list.sort((a,b) => {
+    let va, vb;
+    switch(field) {
+      case 'sales': va = a.yearly.sales; vb = b.yearly.sales; break;
+      case 'qty': va = a.yearly.qty; vb = b.yearly.qty; break;
+      case 'margin': va = a.yearly.cost_rate||0; vb = b.yearly.cost_rate||0; break;
+      case 'growth': va = a._growth; vb = b._growth; break;
+    }
+    return dir === 'asc' ? va - vb : vb - va;
+  });
+  return list;
+}
+
+function renderProdTable() {
+  const list = getProductList();
+  document.getElementById('prodCount').textContent = `${list.length}개`;
+
+  let html = '<table><thead><tr><th>코드</th><th>상품명</th><th>카테고리</th>';
+  activeMonths.forEach((m,i) => {
+    html += `<th class="r">${activeLabels[i]} 매출</th><th class="r">${activeLabels[i]} 수량</th>`;
+  });
+  html += '<th class="r">누적 매출</th><th class="r">누적 수량</th><th class="r">원가율</th>';
+  if (activeMonths.length >= 2) html += '<th class="r">MoM</th>';
+  html += '</tr></thead><tbody>';
+
+  list.slice(0, 100).forEach(p => {
+    html += `<tr><td class="mono">${p.code}</td><td style="font-weight:600">${p.name}</td>`;
+    html += `<td><span class="cat-badge" style="background:#f1f5f9">${p._cat||'-'}</span></td>`;
+    activeMonths.forEach(m => {
+      html += `<td class="r">${fmt(p.monthly[m]?.sales||0)}</td>`;
+      html += `<td class="r">${fmt(p.monthly[m]?.qty||0)}</td>`;
+    });
+    html += `<td class="r" style="font-weight:700">${fmt(p.yearly.sales)}</td>`;
+    html += `<td class="r">${fmt(p.yearly.qty)}</td>`;
+    const cr = p.yearly.cost_rate;
+    const crColor = cr > 0.6 ? 'var(--danger)' : cr > 0.45 ? 'var(--warning)' : 'var(--success)';
+    html += `<td class="r" style="color:${crColor};font-weight:600">${cr ? (cr*100).toFixed(1)+'%' : '-'}</td>`;
+    if (activeMonths.length >= 2) {
+      const g = p._growth;
+      const cls = g > 0 ? 'trend-up' : g < 0 ? 'trend-down' : 'trend-flat';
+      html += `<td class="r ${cls}" style="font-weight:600">${g > 900 ? 'NEW' : g < -900 ? 'END' : (g>0?'+':'')+g.toFixed(1)+'%'}</td>`;
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('prodTableWrap').innerHTML = html;
+}
+
+function renderProdScatter() {
+  destroy('scatter');
+  const list = D.productMonthly.filter(p => p.yearly.sales > 0 && p.yearly.cost_rate > 0 && p.yearly.cost_rate < 5);
+
+  charts.scatter = new Chart(document.getElementById('cProdScatter'), {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        data: list.map(p => ({x: p.yearly.sales, y: p.yearly.cost_rate * 100, name: p.name})),
+        backgroundColor: list.map(p => p.yearly.cost_rate > 0.6 ? 'rgba(239,68,68,0.6)' : p.yearly.cost_rate > 0.45 ? 'rgba(245,158,11,0.6)' : 'rgba(22,163,74,0.6)'),
+        pointRadius: 6, pointHoverRadius: 8
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw.name}: 매출 ${fmtM(ctx.raw.x)}, 원가율 ${ctx.raw.y.toFixed(1)}%`}}},
+      scales:{
+        x:{title:{display:true,text:'매출액',font:{size:11}}, ticks:{callback:v=>fmtM(v)}},
+        y:{title:{display:true,text:'원가율(%)',font:{size:11}}, min:0}
+      }
+    }
+  });
+}
+
+function renderCostHist() {
+  destroy('costHist');
+  const rates = D.productMonthly.filter(p => p.yearly.cost_rate > 0 && p.yearly.cost_rate < 5).map(p => p.yearly.cost_rate * 100);
+  const bins = [0,20,30,40,50,60,70,80,100];
+  const counts = bins.slice(0,-1).map((_,i) => rates.filter(r => r >= bins[i] && r < bins[i+1]).length);
+  const labels = bins.slice(0,-1).map((b,i) => `${b}-${bins[i+1]}%`);
+
+  charts.costHist = new Chart(document.getElementById('cCostHist'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: labels.map((_,i) => bins[i] >= 60 ? '#ef4444' : bins[i] >= 45 ? '#f59e0b' : '#16a34a'),
+        borderRadius: 4
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,title:{display:true,text:'상품 수',font:{size:11}}},x:{title:{display:true,text:'원가율 구간',font:{size:11}},grid:{display:false}}}
+    }
+  });
+}
+
+// ===== Channel Tab =====
+function setupChFilters() {
+  document.querySelectorAll('#chFilters .chip').forEach(el => {
+    el.addEventListener('click', () => {
+      chFilterType = el.dataset.f;
+      document.querySelectorAll('#chFilters .chip').forEach(c => c.classList.toggle('active', c.dataset.f === chFilterType));
+      renderChannelTab();
+    });
+  });
+}
+
+function getFilteredChannels() {
+  const all = {};
+  getSelectedMonths().forEach(m => {
+    Object.entries(D.monthlyChannel[m]||{}).forEach(([ch,v]) => {
+      if (!all[ch]) all[ch] = {sales:0, qty:0, type: D.customers[ch]||'기타'};
+      all[ch].sales += v.sales||0;
+      all[ch].qty += v.qty||0;
+    });
+  });
+  let entries = Object.entries(all);
+  if (chFilterType !== 'all') entries = entries.filter(([_,v]) => v.type === chFilterType);
+  return entries.sort((a,b) => b[1].sales - a[1].sales);
+}
+
+function renderChannelTab() {
+  renderChBar();
+  renderChTable();
+  renderChPie();
+  renderChGrowth();
+}
+
+function renderChBar() {
+  destroy('chBar');
+  const filtered = getFilteredChannels().slice(0,12);
+  charts.chBar = new Chart(document.getElementById('cChBar'), {
+    type: 'bar',
+    data: {
+      labels: filtered.map(e=>e[0]),
+      datasets: activeMonths.map((m,i) => ({
+        label: activeLabels[i],
+        data: filtered.map(([ch]) => (D.monthlyChannel[m]||{})[ch]?.sales || 0),
+        backgroundColor: COLORS[i], borderRadius: 4
+      }))
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtM(v)}},x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}}}
+    }
+  });
+}
+
+function renderChTable() {
+  const filtered = getFilteredChannels();
+  const totalSales = getTotalSales();
+
+  let html = '<table><thead><tr><th>거래처</th><th>유형</th>';
+  activeMonths.forEach((m,i) => html += `<th class="r">${activeLabels[i]} 매출</th><th class="r">${activeLabels[i]} 수량</th>`);
+  html += '<th class="r">누적 매출</th><th class="r">비중</th>';
+  if (activeMonths.length >= 2) html += '<th class="r">MoM</th>';
+  html += '</tr></thead><tbody>';
+
+  filtered.forEach(([ch, v]) => {
+    const t = v.type;
+    const cls = `type-${t}`;
+    html += `<tr><td style="font-weight:600">${ch}</td><td><span class="cat-badge ${cls}">${t}</span></td>`;
+
+    const monthSales = activeMonths.map(m => (D.monthlyChannel[m]||{})[ch]?.sales || 0);
+    const monthQty = activeMonths.map(m => (D.monthlyChannel[m]||{})[ch]?.qty || 0);
+
+    activeMonths.forEach((m,i) => {
+      html += `<td class="r">${fmt(monthSales[i])}</td><td class="r">${fmt(monthQty[i])}</td>`;
+    });
+    html += `<td class="r" style="font-weight:700">${fmt(v.sales)}</td>`;
+    html += `<td class="r">${pct(v.sales, totalSales)}</td>`;
+
+    if (activeMonths.length >= 2) {
+      const g = monthSales[0] ? ((monthSales[1]-monthSales[0])/monthSales[0]*100) : 0;
+      const cls2 = g > 0 ? 'trend-up' : g < 0 ? 'trend-down' : '';
+      html += `<td class="r ${cls2}" style="font-weight:600">${g > 0 ? '+' : ''}${g.toFixed(1)}%</td>`;
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('chTableWrap').innerHTML = html;
+}
+
+function renderChPie() {
+  destroy('chPie');
+  const filtered = getFilteredChannels();
+  const top8 = filtered.slice(0,8);
+  const rest = filtered.slice(8).reduce((s,e)=>s+e[1].sales,0);
+  const labels = top8.map(e=>e[0]);
+  const data = top8.map(e=>e[1].sales);
+  if (rest > 0) { labels.push('기타'); data.push(rest); }
+
+  charts.chPie = new Chart(document.getElementById('cChPie'), {
+    type: 'doughnut',
+    data: { labels, datasets:[{data, backgroundColor:COLORS.slice(0,labels.length), borderWidth:0, cutout:'50%'}] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:10},padding:6}}, tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmtM(ctx.parsed)}`}}}
+    }
+  });
+}
+
+function renderChGrowth() {
+  destroy('chGrowth');
+  if (activeMonths.length < 2) return;
+  const cur = activeMonths[activeMonths.length-1];
+  const prev = activeMonths[activeMonths.length-2];
+
+  const growths = [];
+  getFilteredChannels().forEach(([ch]) => {
+    const cSales = (D.monthlyChannel[cur]||{})[ch]?.sales || 0;
+    const pSales = (D.monthlyChannel[prev]||{})[ch]?.sales || 0;
+    if (pSales > 0) growths.push({ch, growth: (cSales-pSales)/pSales*100, diff: cSales-pSales});
+  });
+  growths.sort((a,b) => b.growth - a.growth);
+  const show = growths.slice(0,12);
+
+  charts.chGrowth = new Chart(document.getElementById('cChGrowth'), {
+    type: 'bar',
+    data: {
+      labels: show.map(g=>g.ch),
+      datasets: [{
+        data: show.map(g=>g.growth),
+        backgroundColor: show.map(g => g.growth >= 0 ? '#16a34a' : '#ef4444'),
+        borderRadius: 4
+      }]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.parsed.x.toFixed(1)}% (${fmtM(show[ctx.dataIndex].diff)})`}}},
+      scales:{x:{title:{display:true,text:'MoM 성장률(%)',font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:10}}}}
+    }
+  });
+}
+
+// ===== Data Summary =====
+function renderDataSummary() {
+  const totalSales = getTotalSales();
+  const totalQty = getTotalQty();
+  const totalCost = getTotalCost();
+  const txCount = activeMonths.reduce((s,m)=>s+(D.monthlyTotals[m]?.count||0),0);
+
+  document.getElementById('dataSum').innerHTML = `
+    <table style="width:100%">
+      <tr><td style="padding:6px"><b>데이터 기간</b></td><td style="padding:6px">${activeLabels.join(', ')} (${activeMonths.length}개월)</td></tr>
+      <tr><td style="padding:6px"><b>총 매출액</b></td><td style="padding:6px">${fmt(totalSales)}원 (${fmtM(totalSales)})</td></tr>
+      <tr><td style="padding:6px"><b>총 판매수량</b></td><td style="padding:6px">${fmt(totalQty)}개</td></tr>
+      <tr><td style="padding:6px"><b>총 매출원가</b></td><td style="padding:6px">${fmt(totalCost)}원</td></tr>
+      <tr><td style="padding:6px"><b>거래 건수</b></td><td style="padding:6px">${fmt(txCount)}건</td></tr>
+      <tr><td style="padding:6px"><b>등록 상품</b></td><td style="padding:6px">${D.productMonthly.length}개</td></tr>
+      <tr><td style="padding:6px"><b>등록 거래처</b></td><td style="padding:6px">${Object.keys(D.customers).length}개</td></tr>
+    </table>
+  `;
+}
+
+// ===== Upload =====
+function setupDropZone() {
+  const z = document.getElementById('dropZone');
+  z.addEventListener('click', () => document.getElementById('fileUp').click());
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('over'); });
+  z.addEventListener('dragleave', () => z.classList.remove('over'));
+  z.addEventListener('drop', e => { e.preventDefault(); z.classList.remove('over'); if(e.dataTransfer.files.length) handleUpload({target:{files:e.dataTransfer.files}}); });
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  toast(`"${file.name}" 처리 중...`);
+  // For now, just show a message
+  toast('파일 업로드 기능 - 동일한 형식의 xlsx 파일을 sales_raw.js로 변환하여 적용하세요.');
+}
+
+// ===== CSV Export =====
+function exportCSV() {
+  let csv = '\uFEFF코드,상품명,카테고리';
+  activeMonths.forEach((m,i) => { csv += `,${activeLabels[i]}_매출,${activeLabels[i]}_수량`; });
+  csv += ',누적매출,누적수량,원가율\n';
+
+  D.productMonthly.filter(p=>p.yearly.sales>0).sort((a,b)=>b.yearly.sales-a.yearly.sales).forEach(p => {
+    csv += `${p.code},${p.name},${p._cat||''}`;
+    activeMonths.forEach(m => { csv += `,${p.monthly[m]?.sales||0},${p.monthly[m]?.qty||0}`; });
+    csv += `,${p.yearly.sales},${p.yearly.qty},${p.yearly.cost_rate ? (p.yearly.cost_rate*100).toFixed(1)+'%' : ''}\n`;
+  });
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `상품매출_${activeLabels.join('_')}.csv`;
+  a.click();
+  toast('CSV 다운로드 완료');
+}
+
+// ===== Toast =====
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
