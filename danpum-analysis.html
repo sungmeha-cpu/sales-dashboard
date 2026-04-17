@@ -233,6 +233,17 @@
     font-size: 12px;
   }
 
+  @media print {
+    body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section { break-inside: avoid; page-break-inside: avoid; }
+    .kpi-row { break-inside: avoid; page-break-inside: avoid; }
+    .insight-grid { break-inside: avoid; page-break-inside: avoid; }
+    .insight-card { break-inside: avoid; page-break-inside: avoid; }
+    .chart-box { break-inside: avoid; page-break-inside: avoid; }
+    .funnel { break-inside: avoid; page-break-inside: avoid; }
+    .grid-2, .grid-3 { break-inside: avoid; page-break-inside: avoid; }
+  }
+
   @media (max-width: 768px) {
     .kpi-row { grid-template-columns: repeat(2, 1fr); }
     .grid-2, .grid-3, .insight-grid { grid-template-columns: 1fr; }
@@ -399,18 +410,6 @@
         <h4>단품만 구매 88.7%</h4>
         <p>983명이 정기식단 미경험. <span class="metric">11.3%</span>만 정기식단 병행 구매 중.</p>
         <p style="margin-top:8px;color:#7b1fa2;font-weight:600;font-size:12px">→ 단품 구매자 대상 정기식단 첫 회 할인</p>
-      </div>
-      <div class="insight-card">
-        <span class="tag growth">핵심 타겟</span>
-        <h4>후기+무른밥 = 전체 62.5%</h4>
-        <p>이유식 후반기 고객이 단품 행사의 <span class="metric">핵심 타겟</span>. 후기 단계 건당 6.0병으로 구매 강도도 최고.</p>
-        <p style="margin-top:8px;color:#2e7d32;font-weight:600;font-size:12px">→ 후기 대상 "졸업 전 대량 구매" 패키지</p>
-      </div>
-      <div class="insight-card">
-        <span class="tag warning">미분류 고객</span>
-        <h4>106명(9.6%) 유입 경로 미분류</h4>
-        <p>전체 1,108명 중 <span class="metric">106명</span>은 유입 경로 분류 기준에 해당하지 않는 고객. 추가 데이터 확보로 분류 정밀도 개선 필요.</p>
-        <p style="margin-top:8px;color:#e65100;font-weight:600;font-size:12px">→ 미분류 고객 구매 패턴 추가 분석</p>
       </div>
     </div>
   </div>
