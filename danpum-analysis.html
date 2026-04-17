@@ -19,33 +19,22 @@
   }
 
   .header {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    color: white;
+    background: #f0f2f5;
+    color: #1a1a2e;
     padding: 40px 0 30px;
     text-align: center;
     position: relative;
-    overflow: hidden;
   }
-  .header::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
-  }
-  .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; position: relative; }
-  .header p { font-size: 14px; opacity: 0.7; position: relative; }
+  .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .header p { font-size: 14px; color: #888; }
   .header .period {
     display: inline-block;
     margin-top: 12px;
     padding: 6px 18px;
-    background: rgba(255,255,255,0.1);
+    background: #e0e3e8;
     border-radius: 20px;
     font-size: 13px;
-    position: relative;
-    backdrop-filter: blur(4px);
+    color: #555;
   }
 
   .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
