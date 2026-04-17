@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단품 이벤트 분석 리포트</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    line-height: 1.6;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 40px 0 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 60%);
+  }
+  .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; position: relative; }
+  .header p { font-size: 14px; opacity: 0.7; position: relative; }
+  .header .period {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 18px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+    font-size: 13px;
+    position: relative;
+    backdrop-filter: blur(4px);
+  }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+  /* KPI Cards */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: transform 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .kpi-label { font-size: 12px; color: #888; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 32px; font-weight: 800; margin: 8px 0 4px; }
+  .kpi-sub { font-size: 12px; color: #aaa; }
+  .kpi-card:nth-child(1) .kpi-value { color: #0f3460; }
+  .kpi-card:nth-child(2) .kpi-value { color: #e94560; }
+  .kpi-card:nth-child(3) .kpi-value { color: #0f9b58; }
+  .kpi-card:nth-child(4) .kpi-value { color: #f5a623; }
+
+  /* Section */
+  .section {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #0f3460;
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* Chart containers */
+  .chart-box { position: relative; width: 100%; }
+  .chart-box.bar { height: 350px; }
+  .chart-box.doughnut { height: 280px; }
+  .chart-box canvas { max-width: 100%; }
+
+  /* Tables */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .data-table thead th {
+    background: #f8f9fb;
+    padding: 10px 12px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 12px;
+    color: #666;
+    border-bottom: 2px solid #e8e8e8;
+  }
+  .data-table thead th:first-child { text-align: left; }
+  .data-table tbody td {
+    padding: 10px 12px;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .data-table tbody td:first-child { text-align: left; font-weight: 600; }
+  .data-table tbody tr:hover { background: #f8f9fb; }
+  .data-table tbody tr.total-row {
+    font-weight: 700;
+    background: #f0f4ff;
+    border-top: 2px solid #0f3460;
+  }
+  .data-table .bar-cell {
+    position: relative;
+    padding-right: 12px;
+  }
+  .data-table .inline-bar {
+    display: inline-block;
+    height: 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Insight cards */
+  .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .insight-card {
+    border: 1px solid #e8ecf0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .insight-card:hover { border-color: #0f3460; }
+  .insight-card .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .tag.growth { background: #e8f5e9; color: #2e7d32; }
+  .tag.warning { background: #fff3e0; color: #e65100; }
+  .tag.action { background: #e3f2fd; color: #1565c0; }
+  .tag.opportunity { background: #f3e5f5; color: #7b1fa2; }
+  .insight-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .insight-card p { font-size: 13px; color: #666; line-height: 1.7; }
+  .insight-card .metric {
+    display: inline-block;
+    font-weight: 700;
+    color: #0f3460;
+    background: #f0f4ff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  /* Comparison highlight */
+  .compare-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .compare-box {
+    flex: 1;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .compare-box.edition { background: linear-gradient(135deg, #e3f2fd, #f0f4ff); }
+  .compare-box.special { background: linear-gradient(135deg, #fce4ec, #fff0f0); }
+  .compare-box .label { font-size: 12px; color: #888; font-weight: 500; }
+  .compare-box .val { font-size: 24px; font-weight: 800; margin: 4px 0; }
+  .compare-box.edition .val { color: #1565c0; }
+  .compare-box.special .val { color: #c62828; }
+  .compare-box .sub { font-size: 11px; color: #aaa; }
+
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 16px; font-weight: 400; }
+
+  /* Funnel */
+  .funnel { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 20px 0; }
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .funnel-step:hover { transform: scale(1.02); }
+  .funnel-arrow { color: #ccc; font-size: 20px; }
+
+  .footer {
+    text-align: center;
+    padding: 30px;
+    color: #bbb;
+    font-size: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3, .insight-grid { grid-template-columns: 1fr; }
+    .compare-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>단품 골라담기 / 특가 이벤트 분석</h1>
+  <p>판매 예측 대비 잔여 수량 소진을 위한 온라인 이벤트 성과</p>
+  <div class="period">판매 기간: 2026.02.20 ~ 03.18 (27일간)</div>
+</div>
+
+<div class="container">
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">총 구매자</div>
+      <div class="kpi-value">1,108</div>
+      <div class="kpi-sub">명</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">총 판매 병수</div>
+      <div class="kpi-value">9,562</div>
+      <div class="kpi-sub">병 (주문 1,707건)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">총 결제금액</div>
+      <div class="kpi-value">4,035만</div>
+      <div class="kpi-sub">원 (40,348,253원)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">객단가</div>
+      <div class="kpi-value">36,415</div>
+      <div class="kpi-sub">원 / 인당 8.6병</div>
+    </div>
+  </div>
+
+  <!-- Section 1: 단계별 판매 현황 -->
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 단계별 판매 현황 (에디션 + 특가 합산)</div>
+    <div class="grid-2">
+      <div class="chart-box bar">
+        <canvas id="chartStage"></canvas>
+      </div>
+      <div>
+        <table class="data-table">
+          <thead>
+            <tr><th>단계</th><th>판매병수</th><th>주문건수</th><th>결제금액</th><th>비중</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>후기</td><td>3,040</td><td>509</td><td>13,332,828</td><td><span class="inline-bar" style="width:80px;background:#e94560"></span>31.8%</td></tr>
+            <tr><td>무른밥</td><td>2,936</td><td>494</td><td>12,720,869</td><td><span class="inline-bar" style="width:77px;background:#0f3460"></span>30.7%</td></tr>
+            <tr><td>중기</td><td>1,482</td><td>265</td><td>6,302,028</td><td><span class="inline-bar" style="width:39px;background:#f5a623"></span>15.5%</td></tr>
+            <tr><td>영양찬</td><td>638</td><td>107</td><td>2,623,208</td><td><span class="inline-bar" style="width:17px;background:#0f9b58"></span>6.7%</td></tr>
+            <tr><td>영양밥</td><td>488</td><td>87</td><td>1,858,902</td><td><span class="inline-bar" style="width:13px;background:#9c27b0"></span>5.1%</td></tr>
+            <tr><td>초기2</td><td>460</td><td>125</td><td>1,694,616</td><td><span class="inline-bar" style="width:12px;background:#ff9800"></span>4.8%</td></tr>
+            <tr><td>영양국</td><td>362</td><td>62</td><td>1,227,402</td><td><span class="inline-bar" style="width:10px;background:#00bcd4"></span>3.8%</td></tr>
+            <tr><td>초기1</td><td>132</td><td>46</td><td>500,800</td><td><span class="inline-bar" style="width:4px;background:#795548"></span>1.4%</td></tr>
+            <tr><td>준비기</td><td>24</td><td>12</td><td>87,600</td><td><span class="inline-bar" style="width:1px;background:#9e9e9e"></span>0.3%</td></tr>
+            <tr class="total-row"><td>합계</td><td>9,562</td><td>1,707</td><td>40,348,253</td><td>100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: 고객 유형 -->
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 고객 유입 경로 분석 (1,108명)</div>
+    <p class="subtitle">단품 구매자가 어디서 왔는지 — 이전 구매 이력 기준 분류 (유입 경로 분류 가능 1,002명 + 미분류 106명)</p>
+    <div class="grid-2">
+      <div class="chart-box doughnut" style="display:flex;align-items:center;justify-content:center">
+        <canvas id="chartCustomerType"></canvas>
+      </div>
+      <div>
+        <div class="funnel">
+          <div class="funnel-step" style="width:95%;background:linear-gradient(90deg,#0f3460,#1a5276)">
+            ① 단품 첫 구매 (이력 없음) — 691명 (62.4%)
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step" style="width:70%;background:linear-gradient(90deg,#e94560,#c0392b)">
+            ② 체험팩만 → 단품 전환 — 207명 (18.7%)
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step" style="width:45%;background:linear-gradient(90deg,#f5a623,#e67e22)">
+            ④ 재구매 이력 → 단품 — 60명 (5.4%)
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step" style="width:35%;background:linear-gradient(90deg,#0f9b58,#27ae60)">
+            ③ 체험팩+재구매 → 단품 — 44명 (4.0%)
+          </div>
+          <div class="funnel-arrow">▼</div>
+          <div class="funnel-step" style="width:28%;background:linear-gradient(90deg,#9e9e9e,#757575)">
+            ⑤ 미분류 — 106명 (9.6%)
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:16px;background:#fff8e1;border-radius:10px;border-left:4px solid #f5a623">
+          <strong style="font-size:13px">체험팩 전환율</strong>
+          <p style="font-size:13px;color:#666;margin-top:4px">
+            체험팩 1회 구매 모수 <strong>14,978명</strong> 중 단품 전환 <strong>207명</strong>
+            <br>→ 전환율 <strong style="color:#e94560;font-size:16px">1.4%</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: 구매자 특성 -->
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> 구매자 행동 특성 (1,108명)</div>
+    <div class="grid-3">
+      <div>
+        <div style="text-align:center;margin-bottom:8px;font-weight:600;font-size:14px">구매 횟수</div>
+        <div class="chart-box doughnut"><canvas id="chartPurchase"></canvas></div>
+      </div>
+      <div>
+        <div style="text-align:center;margin-bottom:8px;font-weight:600;font-size:14px">회원 유형</div>
+        <div class="chart-box doughnut"><canvas id="chartMember"></canvas></div>
+      </div>
+      <div>
+        <div style="text-align:center;margin-bottom:8px;font-weight:600;font-size:14px">정기식단 전환</div>
+        <div class="chart-box doughnut"><canvas id="chartRegular"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: 건당 구매병수 -->
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> 단계별 건당 구매 병수</div>
+    <p class="subtitle">주문 1건당 평균 몇 병을 담았는지 — 구매 강도 지표</p>
+    <div class="chart-box bar" style="height:300px">
+      <canvas id="chartPerOrder"></canvas>
+    </div>
+  </div>
+
+  <!-- Section 6: 인사이트 & 액션 -->
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> 핵심 인사이트 & 액션 제안</div>
+    <div class="insight-grid">
+      <div class="insight-card">
+        <span class="tag growth">신규 유입</span>
+        <h4>62%가 완전 신규 고객</h4>
+        <p>단품 이벤트가 <span class="metric">신규 유입 채널</span>로 매우 효과적. 다만 67%가 단일 구매에 그쳐 <strong>리텐션 전략</strong>이 핵심 과제.</p>
+        <p style="margin-top:8px;color:#2e7d32;font-weight:600;font-size:12px">→ 구매 후 7/14일 재구매 유도 CRM 발송</p>
+      </div>
+      <div class="insight-card">
+        <span class="tag warning">전환율 개선</span>
+        <h4>체험팩 전환율 1.4%</h4>
+        <p>14,978명 중 207명만 전환. <span class="metric">14,771명</span>이 미전환 상태로 잠재 고객풀이 매우 큼.</p>
+        <p style="margin-top:8px;color:#e65100;font-weight:600;font-size:12px">→ 미전환 고객 대상 단품 할인 리마케팅</p>
+      </div>
+      <div class="insight-card">
+        <span class="tag action">가격 전략</span>
+        <h4>영양찬/밥/국은 가격 민감</h4>
+        <p>특가에서 에디션 대비 <span class="metric">3~8배</span> 판매. 가격이 핵심 구매 장벽으로 작용.</p>
+        <p style="margin-top:8px;color:#1565c0;font-weight:600;font-size:12px">→ 정가 전략 재검토 또는 묶음 상시 할인</p>
+      </div>
+      <div class="insight-card">
+        <span class="tag opportunity">정기식단 전환</span>
+        <h4>단품만 구매 88.7%</h4>
+        <p>983명이 정기식단 미경험. <span class="metric">11.3%</span>만 정기식단 병행 구매 중.</p>
+        <p style="margin-top:8px;color:#7b1fa2;font-weight:600;font-size:12px">→ 단품 구매자 대상 정기식단 첫 회 할인</p>
+      </div>
+      <div class="insight-card">
+        <span class="tag growth">핵심 타겟</span>
+        <h4>후기+무른밥 = 전체 62.5%</h4>
+        <p>이유식 후반기 고객이 단품 행사의 <span class="metric">핵심 타겟</span>. 후기 단계 건당 6.0병으로 구매 강도도 최고.</p>
+        <p style="margin-top:8px;color:#2e7d32;font-weight:600;font-size:12px">→ 후기 대상 "졸업 전 대량 구매" 패키지</p>
+      </div>
+      <div class="insight-card">
+        <span class="tag warning">미분류 고객</span>
+        <h4>106명(9.6%) 유입 경로 미분류</h4>
+        <p>전체 1,108명 중 <span class="metric">106명</span>은 유입 경로 분류 기준에 해당하지 않는 고객. 추가 데이터 확보로 분류 정밀도 개선 필요.</p>
+        <p style="margin-top:8px;color:#e65100;font-weight:600;font-size:12px">→ 미분류 고객 구매 패턴 추가 분석</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  푸드케어 커머스팀 · 단품 이벤트 분석 리포트 · 2026.04.17
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+const COLORS = ['#0f3460','#e94560','#f5a623','#0f9b58','#9c27b0','#ff9800','#00bcd4','#795548','#9e9e9e'];
+const COLORS_LIGHT = ['rgba(15,52,96,0.15)','rgba(233,69,96,0.15)','rgba(245,166,35,0.15)','rgba(15,155,88,0.15)','rgba(156,39,176,0.15)','rgba(255,152,0,0.15)','rgba(0,188,212,0.15)','rgba(121,85,72,0.15)','rgba(158,158,158,0.15)'];
+
+const stages = ['후기','무른밥','중기','영양찬','영양밥','초기2','영양국','초기1','준비기'];
+const bottles = [3040,2936,1482,638,488,460,362,132,24];
+const amounts = [13332828,12720869,6302028,2623208,1858902,1694616,1227402,500800,87600];
+
+// Chart 1: Stage bar
+new Chart(document.getElementById('chartStage'), {
+  type: 'bar',
+  data: {
+    labels: stages,
+    datasets: [{
+      label: '판매병수',
+      data: bottles,
+      backgroundColor: COLORS,
+      borderRadius: 6,
+      barPercentage: 0.7
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: 'end',
+        align: 'right',
+        color: '#333',
+        font: { weight: 600, size: 11 },
+        formatter: v => v.toLocaleString() + '병'
+      }
+    },
+    scales: {
+      x: { display: false, max: 3800 },
+      y: { grid: { display: false }, ticks: { font: { weight: 600 } } }
+    }
+  }
+});
+
+// Chart 2: Customer type doughnut
+new Chart(document.getElementById('chartCustomerType'), {
+  type: 'doughnut',
+  data: {
+    labels: ['① 첫 구매 (62.4%)','② 체험팩→전환 (18.7%)','④ 재구매→단품 (5.4%)','③ 체험팩+재구매 (4.0%)','⑤ 미분류 (9.6%)'],
+    datasets: [{
+      data: [691,207,60,44,106],
+      backgroundColor: ['#0f3460','#e94560','#f5a623','#0f9b58','#9e9e9e'],
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '55%',
+    plugins: {
+      datalabels: {
+        color: '#fff',
+        font: { weight: 700, size: 13 },
+        formatter: (v,ctx) => {
+          return v >= 60 ? v + '명' : '';
+        }
+      },
+      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
+    }
+  }
+});
+
+// Doughnut helper
+function makeDoughnut(id, labels, data, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        datalabels: {
+          color: '#fff',
+          font: { weight: 700, size: 12 },
+          formatter: (v,ctx) => {
+            const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+            return ((v/total)*100).toFixed(1) + '%';
+          }
+        },
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } }
+      }
+    }
+  });
+}
+
+makeDoughnut('chartPurchase', ['단일 구매 743명','복수 구매 365명'], [743,365], ['#0f3460','#e94560']);
+makeDoughnut('chartMember', ['기존회원 773명','신규회원 335명'], [773,335], ['#1565c0','#f5a623']);
+makeDoughnut('chartRegular', ['단품만 983명','단품+정기 125명'], [983,125], ['#9e9e9e','#0f9b58']);
+
+// Chart: Per order
+const perOrderStages = ['후기','무른밥','중기','영양찬','영양밥','초기2','영양국','초기1','준비기'];
+const perOrder = [5.97, 5.94, 5.59, 5.96, 5.61, 3.68, 5.84, 2.87, 2.00];
+new Chart(document.getElementById('chartPerOrder'), {
+  type: 'bar',
+  data: {
+    labels: perOrderStages,
+    datasets: [{
+      label: '건당 병수',
+      data: perOrder,
+      backgroundColor: perOrder.map(v => v >= 5.5 ? '#0f3460' : v >= 3.5 ? '#f5a623' : '#e94560'),
+      borderRadius: 6,
+      barPercentage: 0.6
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        anchor: 'end',
+        align: 'top',
+        color: '#333',
+        font: { weight: 700, size: 12 },
+        formatter: v => v.toFixed(1) + '병'
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { weight: 600 } } },
+      y: { display: false, max: 8 }
+    }
+  }
+});
+</script>
+</body>
+</html>
